@@ -1,0 +1,45 @@
+{
+  "profile": {
+    "name": "arcaz",
+    "avatar": "https://plus.unsplash.com/premium_photo-1733317483746-661d5384329c?q=80&w=400&auto=format&fit=crop",
+    "intro": "Daftar singkat berisi barang, tempat, atau alat bantu kecil yang beralih fungsi jadi andalan harian gua. Tanpa gimmick, semuanya emang beneran dipake"
+  },
+  "socials": {
+    "threads": "https://www.threads.com/@_arcaz",
+    "medium": "https://medium.com/@chandraarcychan",
+    "web": "https://portofolio-tan-nu.vercel.app"
+  },
+  "products": [
+    {
+      "id": "1",
+      "name": "Sony WH-1000XM5",
+      "description": "Sepasang headphone ini selalu saya andalkan saat membutuhkan konsentrasi tinggi dalam waktu lama. Kenyamanannya tetap terjaga dan fitur peredam kebisingannya masih menjadi cara termudah bagi saya untuk mengisolasi diri dari ruangan",
+      "category": "Work",
+      "image": "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=1200&q=80",
+      "affiliateUrl": "https://shopee.co.id",
+      "isActive": true,
+      "position": 1
+    },
+    {
+      "id": "2",
+      "name": "Aeropress Coffee Maker",
+      "description": "Kopi ini selalu ada di dapur saya karena cepat, mudah dibuat, dan tidak pernah membuat saya berpikir terlalu keras sebelum menyesap cangkir pertama",
+      "category": "Home",
+      "image": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1200&q=80",
+      "affiliateUrl": "https://tokopedia.com",
+      "isActive": true,
+      "position": 2
+    },
+    {
+      "id": "3",
+      "name": "Anker Power Bank",
+      "description": "Cadangan daya andal untuk perjalanan. Saya sangat merekomendasikannya karena saya tidak lagi khawatir kehabisan baterai saat berada di dalam tas.",
+      "category": "Travel",
+      "image": "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?w=1200&q=80",
+      "affiliateUrl": "https://shopee.co.id",
+      "isActive": true,
+      "position": 3
+    }
+  ],
+  "siteUrl": "https://yourname.vercel.app"
+}

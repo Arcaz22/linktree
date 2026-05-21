@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+:root {
+  --cream: #f7f0e6;
+  --cream-deep: #eadfd1;
+  --paper: #fffaf3;
+  --ink: #231815;
+  --ink-soft: #58473f;
+  --ink-muted: #857268;
+  --ink-hint: #ad9b91;
+  --terracotta: #b75c3d;
+  --terracotta-soft: #d98967;
+  --border: rgba(35, 24, 21, 0.10);
+  --border-strong: rgba(35, 24, 21, 0.18);
+  --shadow-sm: 0 10px 30px rgba(73, 48, 40, 0.06);
+  --shadow-lg: 0 20px 60px rgba(73, 48, 40, 0.10);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-display { font-family: Georgia, 'Times New Roman', serif; }
+
+/* Grain texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.5;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--cream-deep); }
+::-webkit-scrollbar-thumb { background: var(--ink-hint); border-radius: 3px; }
+
+.hero-shell {
+  background:
+    linear-gradient(140deg, rgba(255, 251, 245, 0.95), rgba(244, 230, 214, 0.88)),
+    var(--paper);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+
+.review-card {
+  background: rgba(255, 250, 243, 0.94);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.review-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Stagger animations */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+  animation: fadeSlideUp 0.5s ease forwards;
+}
+/* Hide scrollbar but keep functionality */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
