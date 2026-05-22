@@ -1,22 +1,17 @@
-import fs from 'fs'
-import path from 'path'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
-import { ProfileData } from '@/types'
+
 import ProductGrid from '@/components/ProductGrid'
+import { getSiteData } from '@/app/lib/site-data'
 
-function getData(): ProfileData {
-  const raw = fs.readFileSync(path.join(process.cwd(), 'data', 'profile.json'), 'utf-8')
-  return JSON.parse(raw)
-}
-
-export default function ProductsPage() {
-  const data = getData()
+export default async function ProductsPage() {
+  const data = await getSiteData()
   const { profile, products } = data
 
   const activeProducts = [...products]
     .filter(product => product.isActive)
     .sort((a, b) => a.position - b.position)
+  const categories = ['All', ...Array.from(new Set(activeProducts.map((product) => product.category).filter(Boolean)))]
 
   return (
     <main className="min-h-screen bg-(--cream) text-(--ink)">
@@ -57,7 +52,7 @@ export default function ProductsPage() {
         </section>
 
         <section className="mt-8">
-          <ProductGrid products={activeProducts} />
+          <ProductGrid products={activeProducts} categories={categories} />
         </section>
       </div>
     </main>

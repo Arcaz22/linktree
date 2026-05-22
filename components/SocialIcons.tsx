@@ -1,64 +1,37 @@
 'use client'
+import { SocialLinks as SocialLinksType } from '@/types'
 
-import { SocialLinks } from '@/types'
+export default function SocialIcons({ socials }: { socials: SocialLinksType }) {
+  const links = [
+    { key: 'threads', label: 'Threads', url: socials.threads, icon: (
+      <svg width="15" height="15" viewBox="0 0 192 192" fill="currentColor">
+        <path d="M141.537 88.988a66.667 66.667 0 0 0-2.518-1.143c-1.482-27.307-16.403-42.94-41.457-43.1h-.34c-14.986 0-27.449 6.396-35.12 18.036l13.779 9.452c5.73-8.695 14.724-10.548 21.348-10.548h.229c8.249.053 14.474 2.452 18.503 7.129 2.932 3.405 4.893 8.111 5.864 14.05-7.314-1.243-15.224-1.626-23.68-1.14-23.82 1.371-39.134 15.264-38.105 34.568.522 9.792 5.4 18.216 13.735 23.719 7.047 4.652 16.124 6.927 25.557 6.412 12.458-.683 22.231-5.436 29.049-14.127 5.178-6.6 8.453-15.153 9.899-25.93 5.937 3.583 10.337 8.298 12.767 13.966 4.132 9.635 4.373 25.468-8.546 38.376-11.319 11.308-24.925 16.2-45.488 16.351-22.809-.169-40.06-7.484-51.275-21.742C35.236 139.966 29.808 120.682 29.605 96c.203-24.682 5.63-43.966 16.133-57.317C56.954 24.425 74.206 17.11 97.015 16.94c22.975.17 40.526 7.52 52.171 21.847 5.71 7.026 10.015 15.86 12.853 26.162l16.147-4.308c-3.44-12.68-8.853-23.606-16.219-32.668C147.036 9.607 125.202.195 97.25 0h-.484C68.882.195 47.31 9.642 32.202 28.08 18.956 44.342 12.01 67.616 11.78 96.009L11.77 96l.01.009c.23 28.394 7.175 51.668 20.422 67.93C47.31 182.358 68.882 191.805 96.766 192h.485c24.593-.18 41.81-6.529 56.017-20.724 18.073-18.056 17.409-40.609 11.476-54.494-4.317-10.063-12.276-18.238-23.207-23.794z"/>
+      </svg>
+    )},
+    { key: 'medium', label: 'Medium', url: socials.medium, icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M13.54 12a6.8 6.8 0 0 1-6.77 6.82A6.8 6.8 0 0 1 0 12a6.8 6.8 0 0 1 6.77-6.82A6.8 6.8 0 0 1 13.54 12zm7.42 0c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z"/>
+      </svg>
+    )},
+    { key: 'web', label: 'Website', url: socials.web, icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
+    )},
+  ].filter(l => l.url)
 
-const ITEMS = [
-  {
-    key: 'threads',
-    label: 'Threads',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 12c-2.3 0-4.5-.3-4.5-2.5S9.7 7 12 7s4.5 2.2 4.5 4.5v1.2c0 1.2-.5 2.3-1.5 2.3s-1.5-1.1-1.5-2.3V11.5c0-1.9-1.3-3.5-3.5-3.5S6.5 9.6 6.5 11.5M12 21a9 9 0 1 1 6.5-2.7" />
-      </svg>
-    ),
-  },
-  {
-    key: 'medium',
-    label: 'Medium',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M13.54 12a6.8 6.8 0 0 1-6.77 6.82A6.8 6.8 0 0 1 0 12a6.8 6.8 0 0 1 6.77-6.82A6.8 6.8 0 0 1 13.54 12zm7.42 0c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z" />
-      </svg>
-    ),
-  },
-  {
-    key: 'web',
-    label: 'Web',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="2" y1="12" x2="22" y2="12" />
-        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-      </svg>
-    ),
-  },
-] as const
+  if (!links.length) return null
 
-export default function SocialIcons({ socials }: { socials: SocialLinks }) {
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      {ITEMS.map(item => {
-        const href = socials[item.key]
-        if (!href) return null
-
-        return (
-          <a
-            key={item.key}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={item.label}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border transition-transform hover:-translate-y-0.5"
-            style={{
-              borderColor: 'var(--border-strong)',
-              background: 'rgba(255, 250, 243, 0.82)',
-              color: 'var(--ink-soft)',
-            }}
-          >
-            {item.icon}
-          </a>
-        )
-      })}
+    <div className="mt-4 flex gap-3">
+      {links.map(l => (
+        <a key={l.key} href={l.url} target="_blank" rel="noopener noreferrer"
+          className="flex h-8 w-8 items-center justify-center rounded-full border transition-transform hover:scale-110"
+          style={{ borderColor: 'var(--border-strong)', color: 'var(--ink-muted)' }}
+          aria-label={l.label}>
+          {l.icon}
+        </a>
+      ))}
     </div>
   )
 }

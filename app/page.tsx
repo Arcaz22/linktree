@@ -1,17 +1,11 @@
-import fs from 'fs'
-import path from 'path'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ProfileData } from '@/types'
+
 import SocialIcons from '@/components/SocialIcons'
+import { getSiteData } from '@/app/lib/site-data'
 
-function getData(): ProfileData {
-  const raw = fs.readFileSync(path.join(process.cwd(), 'data', 'profile.json'), 'utf-8')
-  return JSON.parse(raw)
-}
-
-export default function Home() {
-  const data = getData()
+export default async function Home() {
+  const data = await getSiteData()
   const { profile, socials, products } = data
 
   const activeProducts = [...products]

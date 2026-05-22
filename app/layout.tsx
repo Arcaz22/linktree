@@ -1,19 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import fs from 'fs'
-import path from 'path'
-
-function getProfile() {
-  try {
-    const raw = fs.readFileSync(path.join(process.cwd(), 'data', 'profile.json'), 'utf-8')
-    return JSON.parse(raw)
-  } catch {
-    return { profile: { name: 'My Picks' }, siteUrl: '' }
-  }
-}
+import { getSiteData } from '@/app/lib/site-data'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { profile, siteUrl } = getProfile()
+  const { profile, siteUrl } = await getSiteData()
   return {
     title: `${profile.name} — Ulasan Pribadi`,
     description: profile.intro,

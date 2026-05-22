@@ -27,16 +27,3 @@ export interface ProfileData {
   products: Product[]
   siteUrl: string
 }
-
-export interface Link {
-  title: string
-  url: string
-  icon?: string
-  color?: string
-}
-
-export interface Embed {
-  type: string
-  url: string
-  title?: string
-}

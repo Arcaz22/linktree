@@ -2,20 +2,22 @@
 
 import Image from 'next/image'
 import { ExternalLink } from 'lucide-react'
+
+import { getProductImage } from '@/app/lib/product-image'
 import { Product } from '@/types'
 
-export default function ProductCard({ product, index }: { product: Product; index: number }) {
+export function ProductCard({ product, index }: { product: Product; index: number }) {
+  const imageSrc = getProductImage(product.image)
+
   return (
     <article
       className="review-card grid gap-4 rounded-[28px] p-4 sm:grid-cols-[168px_minmax(0,1fr)] sm:p-5 animate-in"
-      style={{
-        animationDelay: `${index * 0.08}s`,
-        animationFillMode: 'both',
-      }}
-    >
-      <div className="relative overflow-hidden rounded-3xl bg-(--cream-deep) aspect-4/3">
+      style={{ animationDelay: `${index * 0.08}s`, animationFillMode: 'both' }}>
+
+      <div className="relative overflow-hidden rounded-3xl aspect-4/3 flex items-center justify-center"
+        style={{ background: 'var(--cream-deep)' }}>
         <Image
-          src={product.image}
+          src={imageSrc}
           alt={product.name}
           fill
           className="object-cover transition-transform duration-500 hover:scale-[1.03]"
@@ -43,13 +45,9 @@ export default function ProductCard({ product, index }: { product: Product; inde
         </p>
 
         <div className="mt-5">
-          <a
-            href={product.affiliateUrl}
-            target="_blank"
-            rel="noopener noreferrer sponsored"
+          <a href={product.affiliateUrl} target="_blank" rel="noopener noreferrer sponsored"
             className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-transform hover:-translate-y-0.5"
-            style={{ background: 'var(--terracotta)', color: 'var(--paper)' }}
-          >
+            style={{ background: 'var(--terracotta)', color: 'var(--paper)' }}>
             Link Produk <ExternalLink size={15} />
           </a>
         </div>
@@ -57,3 +55,5 @@ export default function ProductCard({ product, index }: { product: Product; inde
     </article>
   )
 }
+
+export default ProductCard
