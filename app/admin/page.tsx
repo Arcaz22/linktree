@@ -1,7 +1,6 @@
 'use client'
 
-import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import Image from 'next/image'
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import {
   DndContext, PointerSensor, closestCenter,
   useSensor, useSensors, type DragEndEvent,
@@ -13,32 +12,128 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import {
   AlertCircle, Check, Eye, GripVertical, Link2, Loader2,
-  LockKeyhole, LogOut, PencilLine, Plus, Save, Trash2,
+  Bold, Italic, List, ListOrdered, LockKeyhole, LogOut, PencilLine,
+  Plus, Quote, Save, Trash2, Underline,
 } from 'lucide-react'
 
 import FilterBar from '@/components/FilterBar'
-import { getProductImage } from '@/app/lib/product-image'
+import { reviewHtmlToText, sanitizeReviewHtml } from '@/app/lib/review-html'
 import { useAdminSession } from '@/app/hooks/useAdminSession'
 import { Product, ProfileData } from '@/types'
 
 type StatusFilter = 'All' | 'Published' | 'Draft'
-type ProductDraft = Omit<Product, 'id' | 'position' | 'isActive'>
+type ProductDraft = Pick<Product, 'name' | 'category' | 'description' | 'affiliateUrl'>
 
 const EMPTY_PRODUCT: ProductDraft = {
   name: '',
   category: '',
-  image: '',
   description: '',
   affiliateUrl: '',
 }
 
+function normalizeReviewContent(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+
+  const hasHtmlTag = /<\/?[a-z][\s\S]*>/i.test(trimmed)
+  if (hasHtmlTag) {
+    return sanitizeReviewHtml(trimmed)
+  }
+
+  return trimmed
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p>${paragraph.trim().replace(/\n/g, '<br>')}</p>`)
+    .join('')
+}
+
+function WysiwygEditor({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (value: string) => void
+}) {
+  const editorRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const element = editorRef.current
+    if (!element) return
+    const normalizedValue = normalizeReviewContent(value)
+    if (element.innerHTML !== normalizedValue) {
+      element.innerHTML = normalizedValue
+    }
+  }, [value])
+
+  function syncValue() {
+    const element = editorRef.current
+    if (!element) return
+    onChange(normalizeReviewContent(element.innerHTML))
+  }
+
+  function apply(command: string, commandValue?: string) {
+    editorRef.current?.focus()
+    document.execCommand(command, false, commandValue)
+    syncValue()
+  }
+
+  function handleLink() {
+    const link = window.prompt('Masukkan URL tautan')
+    if (!link) return
+    apply('createLink', link.trim())
+  }
+
+  const toolButtonCls = 'inline-flex h-9 w-9 items-center justify-center rounded-lg border'
+
+  return (
+    <div className="rounded-[20px] border" style={{ borderColor: 'var(--border)', background: 'var(--paper)' }}>
+      <div className="flex flex-wrap gap-2 border-b p-3" style={{ borderColor: 'var(--border)' }}>
+        <button type="button" onClick={() => apply('bold')} className={toolButtonCls} aria-label="Tebal" title="Tebal"
+          style={{ borderColor: 'var(--border)', color: 'var(--ink)' }}>
+          <Bold size={16} />
+        </button>
+        <button type="button" onClick={() => apply('italic')} className={toolButtonCls} aria-label="Miring" title="Miring"
+          style={{ borderColor: 'var(--border)', color: 'var(--ink)' }}>
+          <Italic size={16} />
+        </button>
+        <button type="button" onClick={() => apply('underline')} className={toolButtonCls} aria-label="Garis bawah" title="Garis bawah"
+          style={{ borderColor: 'var(--border)', color: 'var(--ink)' }}>
+          <Underline size={16} />
+        </button>
+        <button type="button" onClick={() => apply('insertUnorderedList')} className={toolButtonCls} aria-label="Bullet list" title="Bullet list"
+          style={{ borderColor: 'var(--border)', color: 'var(--ink)' }}>
+          <List size={16} />
+        </button>
+        <button type="button" onClick={() => apply('insertOrderedList')} className={toolButtonCls} aria-label="Nomor list" title="Nomor list"
+          style={{ borderColor: 'var(--border)', color: 'var(--ink)' }}>
+          <ListOrdered size={16} />
+        </button>
+        <button type="button" onClick={() => apply('formatBlock', 'blockquote')} className={toolButtonCls} aria-label="Kutipan" title="Kutipan"
+          style={{ borderColor: 'var(--border)', color: 'var(--ink)' }}>
+          <Quote size={16} />
+        </button>
+        <button type="button" onClick={handleLink} className={toolButtonCls} aria-label="Tautan" title="Tautan"
+          style={{ borderColor: 'var(--border)', color: 'var(--ink)' }}>
+          <Link2 size={16} />
+        </button>
+      </div>
+
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={syncValue}
+        className="min-h-36 w-full px-4 py-3 text-sm leading-7 outline-none"
+        style={{ color: 'var(--ink)' }}
+      />
+    </div>
+  )
+}
+
 async function parseJson<T>(response: Response): Promise<T> {
   const data = await response.json()
-
   if (!response.ok) {
     throw new Error(data?.error || 'Request failed')
   }
-
   return data as T
 }
 
@@ -49,7 +144,7 @@ function LoginForm({
 }: {
   loading: boolean
   error: string
-  onSubmit: (username: string, password: string) => Promise<void>
+  onSubmit: (username: string, password: string) => Promise<void | boolean>
 }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -92,7 +187,7 @@ function LoginForm({
               style={inputStyle}
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              placeholder="admin"
+              placeholder="Masukkan username"
               autoComplete="username"
             />
           </div>
@@ -148,67 +243,75 @@ function SortableReviewRow({
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: product.id })
+  const reviewPreview = reviewHtmlToText(product.description)
 
   return (
-    <div ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
-      className="grid gap-4 rounded-3xl border p-4 sm:grid-cols-[auto_72px_minmax(0,1fr)_auto]">
-      <button {...attributes} {...listeners}
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        borderColor: 'var(--border)',
+      }}
+      className="grid gap-4 rounded-3xl border p-4 sm:grid-cols-[auto_minmax(0,1fr)_auto]"
+    >
+      <button
+        {...attributes}
+        {...listeners}
         className="flex h-10 w-10 items-center justify-center rounded-full border"
-        style={{ borderColor: 'var(--border)', color: 'var(--ink-hint)', background: 'var(--paper)' }}>
+        style={{ borderColor: 'var(--border)', color: 'var(--ink-hint)', background: 'var(--paper)' }}
+      >
         <GripVertical size={16} />
       </button>
-
-      <div className="relative h-18 w-18 overflow-hidden rounded-[18px] border shrink-0"
-        style={{ borderColor: 'var(--border)', background: 'var(--cream-deep)' }}>
-        <Image
-          src={getProductImage(product.image)}
-          alt={product.name}
-          fill
-          className="object-cover"
-          sizes="72px"
-        />
-      </div>
 
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{product.name}</h3>
-          <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
+          <span
+            className="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
             style={{
               background: product.isActive ? 'rgba(174,92,61,0.12)' : 'rgba(109,95,84,0.08)',
               color: product.isActive ? 'var(--terracotta)' : 'var(--ink-muted)',
-            }}>
-            {product.isActive ? 'Active' : 'Draft'}
+            }}
+          >
+            {product.isActive ? 'Aktif' : 'Draf'}
           </span>
         </div>
         <p className="mt-2 text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--ink-hint)' }}>
           {product.category}
         </p>
         <p className="mt-2 line-clamp-2 text-sm leading-6" style={{ color: 'var(--ink-soft)' }}>
-          {product.description}
+          {reviewPreview}
         </p>
       </div>
 
       <div className="flex items-center gap-2 sm:flex-col sm:items-end">
-        <button onClick={() => onToggle(product.id)}
+        <button
+          onClick={() => onToggle(product.id)}
           className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold"
           style={{
             background: product.isActive ? 'var(--ink)' : 'var(--paper)',
             color: product.isActive ? 'var(--paper)' : 'var(--ink-muted)',
             border: product.isActive ? 'none' : '1px solid var(--border)',
-          }}>
+          }}
+        >
           <Eye size={14} />
-          {product.isActive ? 'Published' : 'Keep Draft'}
+          {product.isActive ? 'Tayang' : 'Tetap Draf'}
         </button>
-        <button onClick={() => onEdit(product)}
+        <button
+          onClick={() => onEdit(product)}
           className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold"
-          style={{ borderColor: 'var(--border)', color: 'var(--ink-soft)' }}>
-          <PencilLine size={14} /> Edit
+          style={{ borderColor: 'var(--border)', color: 'var(--ink-soft)' }}
+        >
+          <PencilLine size={14} /> Ubah
         </button>
-        <button onClick={() => onDelete(product.id)}
+        <button
+          onClick={() => onDelete(product.id)}
           className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold"
-          style={{ borderColor: 'rgba(160,38,38,0.18)', color: '#B44833' }}>
-          <Trash2 size={14} /> Delete
+          style={{ borderColor: 'rgba(160,38,38,0.18)', color: '#B44833' }}
+        >
+          <Trash2 size={14} /> Hapus
         </button>
       </div>
     </div>
@@ -234,13 +337,21 @@ function ProductForm({
     setForm((current) => ({ ...current, [key]: value }))
   }
 
+  function handleSave() {
+    onSave({
+      ...form,
+      description: sanitizeReviewHtml(form.description),
+    })
+  }
+
   const inputCls = 'w-full rounded-[20px] border px-4 py-3 text-sm outline-none'
   const inputStyle = { borderColor: 'var(--border)', background: 'var(--paper)', color: 'var(--ink)' }
-  const imageSrc = getProductImage(form.image)
 
   return (
-    <div className="rounded-[28px] border p-5"
-      style={{ borderColor: 'var(--border)', background: 'rgba(255,250,243,0.92)' }}>
+    <div
+      className="rounded-[28px] border p-5"
+      style={{ borderColor: 'var(--border)', background: 'rgba(255,250,243,0.92)' }}
+    >
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em]" style={{ color: 'var(--ink-hint)' }}>
@@ -252,79 +363,98 @@ function ProductForm({
 
       <div className="mt-5 grid gap-4">
         <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em]"
-            style={{ color: 'var(--ink-muted)' }}>
+          <label
+            className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em]"
+            style={{ color: 'var(--ink-muted)' }}
+          >
             Link Afiliasi *
           </label>
           <div className="relative">
             <Link2 size={15} className="absolute left-4 top-1/2 -translate-y-1/2"
               style={{ color: 'var(--ink-hint)' }} />
-            <input className={inputCls + ' pl-10'} style={inputStyle}
+            <input
+              className={inputCls + ' pl-10'}
+              style={inputStyle}
               placeholder="https://produk-..."
               value={form.affiliateUrl}
-              onChange={(event) => update('affiliateUrl', event.target.value)} />
+              onChange={(event) => update('affiliateUrl', event.target.value)}
+            />
           </div>
         </div>
 
-        {/* <div className="flex items-center gap-4 rounded-[20px] border p-3"
-          style={{ borderColor: 'var(--border)', background: 'var(--cream-deep)' }}>
-          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl">
-            <Image src={imageSrc} alt="preview" fill className="object-cover" sizes="64px" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium" style={{ color: 'var(--ink-muted)' }}>Preview gambar default</p>
-            <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--ink-hint)' }}>{imageSrc}</p>
-          </div>
-        </div> */}
-
         <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em]"
-            style={{ color: 'var(--ink-muted)' }}>Nama Produk *</label>
-          <input className={inputCls} style={inputStyle}
+          <label
+            className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em]"
+            style={{ color: 'var(--ink-muted)' }}
+          >
+            Nama Produk *
+          </label>
+          <input
+            className={inputCls}
+            style={inputStyle}
             placeholder="Nama Produk"
             value={form.name}
-            onChange={(event) => update('name', event.target.value)} />
+            onChange={(event) => update('name', event.target.value)}
+          />
         </div>
 
         <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em]"
-            style={{ color: 'var(--ink-muted)' }}>Kategori</label>
+          <label
+            className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em]"
+            style={{ color: 'var(--ink-muted)' }}
+          >
+            Kategori
+          </label>
           <div className="flex gap-2">
-            <select className={inputCls} style={inputStyle}
+            <select
+              className={inputCls}
+              style={inputStyle}
               value={categories.includes(form.category) ? form.category : ''}
-              onChange={(event) => update('category', event.target.value)}>
+              onChange={(event) => update('category', event.target.value)}
+            >
               <option value="">Pilih kategori...</option>
               {categories.filter((category) => category !== 'All').map((category) => (
                 <option key={category} value={category}>{category}</option>
               ))}
             </select>
-            <input className={inputCls} style={{ ...inputStyle, width: '160px', flexShrink: 0 }}
+            <input
+              className={inputCls}
+              style={{ ...inputStyle, width: '160px', flexShrink: 0 }}
               placeholder="atau ketik baru"
               value={!categories.includes(form.category) ? form.category : ''}
-              onChange={(event) => update('category', event.target.value)} />
+              onChange={(event) => update('category', event.target.value)}
+            />
           </div>
         </div>
 
         <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em]"
-            style={{ color: 'var(--ink-muted)' }}>Personal Review</label>
-          <textarea rows={4} className={inputCls + ' resize-none'} style={inputStyle}
-            placeholder="Apa yang membuat produk ini layak dibagikan?"
-            value={form.description}
-            onChange={(event) => update('description', event.target.value)} />
+          <label
+            className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em]"
+            style={{ color: 'var(--ink-muted)' }}
+          >
+            Personal Review
+          </label>
+          <WysiwygEditor value={form.description} onChange={(value) => update('description', value)} />
+          <p className="mt-2 text-xs leading-5" style={{ color: 'var(--ink-hint)' }}>
+            Gunakan format tebal, miring, bullet, kutipan, atau tautan untuk menulis catatan yang lebih editorial.
+          </p>
         </div>
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        <button onClick={() => onSave(form)}
+        <button
+          onClick={handleSave}
           className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold"
-          style={{ background: 'var(--terracotta)', color: 'var(--paper)' }}>
-          <Check size={15} /> Save
+          style={{ background: 'var(--terracotta)', color: 'var(--paper)' }}
+        >
+          <Check size={15} /> Simpan
         </button>
-        <button onClick={onCancel}
+        <button
+          onClick={onCancel}
           className="rounded-full border px-4 py-2.5 text-sm font-semibold"
-          style={{ borderColor: 'var(--border)', color: 'var(--ink-muted)' }}>
-          Cancel
+          style={{ borderColor: 'var(--border)', color: 'var(--ink-muted)' }}
+        >
+          Batal
         </button>
       </div>
     </div>
@@ -372,10 +502,10 @@ export default function AdminPage() {
   const filteredProducts = useMemo(() => {
     return sorted.filter((product) => {
       const categoryMatch = activeCategory === 'All' || product.category === activeCategory
-      const statusMatch = activeStatus === 'All'
-        || (activeStatus === 'Published' && product.isActive)
-        || (activeStatus === 'Draft' && !product.isActive)
-
+      const statusMatch =
+        activeStatus === 'All' ||
+        (activeStatus === 'Published' && product.isActive) ||
+        (activeStatus === 'Draft' && !product.isActive)
       return categoryMatch && statusMatch
     })
   }, [activeCategory, activeStatus, sorted])
@@ -388,7 +518,6 @@ export default function AdminPage() {
   async function loadAdminData() {
     setLoadingData(true)
     setError('')
-
     try {
       setData(await parseJson<ProfileData>(await fetch('/api/admin/data', { cache: 'no-store' })))
     } catch (loadError) {
@@ -400,10 +529,8 @@ export default function AdminPage() {
 
   async function saveChanges() {
     if (!data) return
-
     setSaving(true)
     setError('')
-
     try {
       for (const product of data.products) {
         await parseJson<{ success: true }>(
@@ -414,7 +541,6 @@ export default function AdminPage() {
           }),
         )
       }
-
       await parseJson<{ success: true }>(
         await fetch('/api/products/reorder', {
           method: 'POST',
@@ -427,7 +553,6 @@ export default function AdminPage() {
           }),
         }),
       )
-
       setSaved(true)
       window.setTimeout(() => setSaved(false), 2200)
       await loadAdminData()
@@ -462,21 +587,19 @@ export default function AdminPage() {
 
   function addProduct(value: ProductDraft) {
     if (!data) return
-
     const product: Product = {
       ...value,
+      image: '',
       id: crypto.randomUUID(),
       isActive: true,
       position: data.products.length + 1,
     }
-
     setData({ ...data, products: [...data.products, product] })
     setShowAddForm(false)
   }
 
   function saveEdit(value: ProductDraft) {
     if (!data || !editingProduct) return
-
     setData({
       ...data,
       products: data.products.map((product) =>
@@ -488,7 +611,6 @@ export default function AdminPage() {
 
   async function deleteProduct(id: string) {
     if (!data || !window.confirm('Hapus produk ini?')) return
-
     try {
       await parseJson<{ success: true }>(await fetch(`/api/products/${id}`, { method: 'DELETE' }))
       setData({
@@ -504,17 +626,12 @@ export default function AdminPage() {
 
   function toggleProduct(id: string) {
     if (!data) return
-
     setData({
       ...data,
       products: data.products.map((product) =>
         product.id === id ? { ...product, isActive: !product.isActive } : product,
       ),
     })
-  }
-
-  async function handleLogin(nextUsername: string, nextPassword: string) {
-    await login(nextUsername, nextPassword)
   }
 
   if (status === 'loading') {
@@ -526,7 +643,13 @@ export default function AdminPage() {
   }
 
   if (status !== 'authenticated') {
-    return <LoginForm loading={submitting} error={authError} onSubmit={handleLogin} />
+    return (
+      <LoginForm
+        loading={submitting}
+        error={authError}
+        onSubmit={async (username, password) => login(username, password)}
+      />
+    )
   }
 
   if (loadingData || !data) {
@@ -540,8 +663,11 @@ export default function AdminPage() {
   return (
     <main className="min-h-screen" style={{ background: 'var(--cream)' }}>
       <div className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-8">
-        <section className="rounded-4xl border px-6 py-6 sm:px-8"
-          style={{ borderColor: 'var(--border)', background: 'rgba(255,251,245,0.88)' }}>
+        {/* Header */}
+        <section
+          className="rounded-4xl border px-6 py-6 sm:px-8"
+          style={{ borderColor: 'var(--border)', background: 'rgba(255,251,245,0.88)' }}
+        >
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.24em]" style={{ color: 'var(--terracotta)' }}>
@@ -551,12 +677,13 @@ export default function AdminPage() {
                 Management Konten
               </h1>
             </div>
-
             <div className="flex flex-wrap items-center gap-3">
-
-              <a href="/" target="_blank"
+              <a
+                href="/"
+                target="_blank"
                 className="inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold"
-                style={{ borderColor: 'var(--border)', color: 'var(--ink-soft)' }}>
+                style={{ borderColor: 'var(--border)', color: 'var(--ink-soft)' }}
+              >
                 Lihat Tampilan Publik
               </a>
               <button
@@ -571,27 +698,34 @@ export default function AdminPage() {
           </div>
         </section>
 
+        {/* Error */}
         {error && (
-          <div className="mt-5 flex items-center gap-2 rounded-[20px] border px-4 py-3 text-sm"
-            style={{ borderColor: '#F3C0B6', background: '#FFF2EE', color: '#B44833' }}>
+          <div
+            className="mt-5 flex items-center gap-2 rounded-[20px] border px-4 py-3 text-sm"
+            style={{ borderColor: '#F3C0B6', background: '#FFF2EE', color: '#B44833' }}
+          >
             <AlertCircle size={16} /> {error}
           </div>
         )}
 
+        {/* Products section */}
         <section className="mt-6 space-y-5">
-          <section className="rounded-4xl border p-6"
-            style={{ borderColor: 'var(--border)', background: 'rgba(255,251,245,0.96)' }}>
+          <section
+            className="rounded-4xl border p-6"
+            style={{ borderColor: 'var(--border)', background: 'rgba(255,251,245,0.96)' }}
+          >
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <h2 className="font-display text-3xl" style={{ color: 'var(--ink)' }}>Daftar Produk</h2>
                 <p className="mt-2 text-sm" style={{ color: 'var(--ink-muted)' }}>
-                  {publishedCount} published / {sorted.length} total
+                  {publishedCount} tayang / {sorted.length} total
                 </p>
               </div>
               <button
                 onClick={() => { setShowAddForm((current) => !current); setEditingProduct(null) }}
                 className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
-                style={{ background: 'var(--terracotta)', color: 'var(--paper)' }}>
+                style={{ background: 'var(--terracotta)', color: 'var(--paper)' }}
+              >
                 <Plus size={16} /> Tambah Produk
               </button>
             </div>
@@ -600,44 +734,74 @@ export default function AdminPage() {
 
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="lg:max-w-60">
-                <p className="text-xs uppercase tracking-[0.22em]" style={{ color: 'var(--ink-hint)' }}>Filter Data</p>
+                <p className="text-xs uppercase tracking-[0.22em]" style={{ color: 'var(--ink-hint)' }}>
+                  Filter Data
+                </p>
                 <p className="mt-2 text-sm leading-6" style={{ color: 'var(--ink-muted)' }}>
                   Menampilkan {filteredProducts.length} produk
                 </p>
               </div>
               <div className="flex w-full flex-col gap-3 lg:max-w-3xl">
-                <FilterBar categories={categoryOptions} activeCategory={activeCategory} onSelect={setActiveCategory} />
-                <FilterBar categories={statusOptions} activeCategory={activeStatus} onSelect={(value) => setActiveStatus(value as StatusFilter)} />
+                <FilterBar
+                  categories={categoryOptions}
+                  activeCategory={activeCategory}
+                  onSelect={setActiveCategory}
+                />
+                <FilterBar
+                  categories={statusOptions}
+                  activeCategory={activeStatus}
+                  onSelect={(value) => setActiveStatus(value as StatusFilter)}
+                />
               </div>
             </div>
           </section>
 
           {showAddForm && (
-            <ProductForm title="Review Terbaru" initialValue={EMPTY_PRODUCT} categories={categoryOptions}
-              onCancel={() => setShowAddForm(false)} onSave={addProduct} />
+            <ProductForm
+              title="Review Terbaru"
+              initialValue={EMPTY_PRODUCT}
+              categories={categoryOptions}
+              onCancel={() => setShowAddForm(false)}
+              onSave={addProduct}
+            />
           )}
+
           {editingProduct && (
-            <ProductForm title={editingProduct.name} categories={categoryOptions}
+            <ProductForm
+              title={editingProduct.name}
+              categories={categoryOptions}
               initialValue={{
                 name: editingProduct.name,
                 category: editingProduct.category,
-                image: editingProduct.image,
                 description: editingProduct.description,
                 affiliateUrl: editingProduct.affiliateUrl,
               }}
-              onCancel={() => setEditingProduct(null)} onSave={saveEdit} />
+              onCancel={() => setEditingProduct(null)}
+              onSave={saveEdit}
+            />
           )}
 
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={filteredProducts.map((product) => product.id)} strategy={verticalListSortingStrategy}>
+            <SortableContext
+              items={filteredProducts.map((product) => product.id)}
+              strategy={verticalListSortingStrategy}
+            >
               <div className="space-y-3">
-                {filteredProducts.length ? filteredProducts.map((product) => (
-                  <SortableReviewRow key={product.id} product={product}
-                    onEdit={(nextProduct) => { setEditingProduct(nextProduct); setShowAddForm(false) }}
-                    onDelete={deleteProduct} onToggle={toggleProduct} />
-                )) : (
-                  <div className="rounded-[28px] border px-6 py-14 text-center"
-                    style={{ borderColor: 'var(--border)', background: 'var(--paper)' }}>
+                {filteredProducts.length ? (
+                  filteredProducts.map((product) => (
+                    <SortableReviewRow
+                      key={product.id}
+                      product={product}
+                      onEdit={(nextProduct) => { setEditingProduct(nextProduct); setShowAddForm(false) }}
+                      onDelete={deleteProduct}
+                      onToggle={toggleProduct}
+                    />
+                  ))
+                ) : (
+                  <div
+                    className="rounded-[28px] border px-6 py-14 text-center"
+                    style={{ borderColor: 'var(--border)', background: 'var(--paper)' }}
+                  >
                     <p className="text-sm" style={{ color: 'var(--ink-muted)' }}>Tidak ada produk.</p>
                   </div>
                 )}
@@ -646,13 +810,19 @@ export default function AdminPage() {
           </DndContext>
         </section>
 
+        {/* Save */}
         <div className="mt-8">
-          <button onClick={saveChanges} disabled={saving}
+          <button
+            onClick={saveChanges}
+            disabled={saving}
             className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold disabled:opacity-70"
-            style={{ background: saved ? '#2F7A5A' : 'var(--terracotta)', color: 'var(--paper)' }}>
-            {saving ? <><Loader2 size={16} className="animate-spin" /> Saving...</>
-              : saved ? <><Check size={16} /> Saved</>
-              : <><Save size={16} /> Save Changes</>}
+            style={{ background: saved ? '#2F7A5A' : 'var(--terracotta)', color: 'var(--paper)' }}
+          >
+            {saving
+              ? <><Loader2 size={16} className="animate-spin" /> Menyimpan...</>
+              : saved
+              ? <><Check size={16} /> Tersimpan</>
+              : <><Save size={16} /> Simpan Perubahan</>}
           </button>
         </div>
       </div>

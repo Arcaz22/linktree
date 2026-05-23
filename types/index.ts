@@ -4,6 +4,7 @@ export interface Product {
   description: string
   category: string
   image: string
+  image_url?: string
   affiliateUrl: string
   isActive: boolean
   position: number

@@ -64,6 +64,43 @@ body::before {
   box-shadow: var(--shadow-lg);
 }
 
+.review-rich p,
+.admin-review-preview p {
+  margin: 0 0 0.9rem;
+}
+
+.review-rich p:last-child,
+.admin-review-preview p:last-child {
+  margin-bottom: 0;
+}
+
+.review-rich ul,
+.review-rich ol,
+.admin-review-preview ul,
+.admin-review-preview ol {
+  margin: 0 0 0.9rem;
+  padding-left: 1.2rem;
+}
+
+.review-rich li,
+.admin-review-preview li {
+  margin: 0.2rem 0;
+}
+
+.review-rich blockquote,
+.admin-review-preview blockquote {
+  margin: 0 0 0.9rem;
+  padding-left: 1rem;
+  border-left: 2px solid rgba(180, 130, 80, 0.3);
+}
+
+.review-rich a,
+.admin-review-preview a {
+  color: #92400e;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
 /* Stagger animations */
 @keyframes fadeSlideUp {
   from { opacity: 0; transform: translateY(20px); }
